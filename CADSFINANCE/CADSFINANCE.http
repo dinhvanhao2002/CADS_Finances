@@ -1,0 +1,6 @@
+@CADSFINANCE_HostAddress = http://localhost:5181
+
+GET {{CADSFINANCE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

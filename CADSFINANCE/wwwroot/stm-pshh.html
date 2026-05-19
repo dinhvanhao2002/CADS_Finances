@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STM_PSHH CRUD</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    body { margin: 0; background: #f5f7fb; color: #18202f; }
+    header { background: #ffffff; border-bottom: 1px solid #d9e0ea; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1 { font-size: 20px; margin: 0; }
+    main { padding: 20px 24px; display: grid; grid-template-columns: minmax(520px, 1fr) 380px; gap: 18px; }
+    .panel { background: #ffffff; border: 1px solid #d9e0ea; border-radius: 8px; overflow: hidden; }
+    .toolbar { padding: 12px; display: flex; gap: 8px; border-bottom: 1px solid #e4e9f0; }
+    input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #c9d2df; border-radius: 6px; padding: 9px 10px; font: inherit; }
+    textarea { min-height: 70px; resize: vertical; }
+    button { border: 1px solid #bdc9d8; background: #ffffff; border-radius: 6px; padding: 9px 12px; font: inherit; cursor: pointer; white-space: nowrap; }
+    button.primary { background: #1261a6; border-color: #1261a6; color: #ffffff; }
+    button.danger { color: #a92323; border-color: #e3b8b8; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid #edf1f6; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f2f7fd; }
+    .table-wrap { max-height: calc(100vh - 146px); overflow: auto; }
+    form { padding: 14px; display: grid; gap: 12px; }
+    label { display: grid; gap: 5px; font-size: 12px; color: #4a5668; }
+    label span { font-weight: 600; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .checks { display: flex; gap: 16px; align-items: center; }
+    .checks label { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+    .checks input { width: auto; }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #e4e9f0; padding-top: 12px; }
+    .status { font-size: 13px; color: #536175; }
+    @media (max-width: 980px) { main { grid-template-columns: 1fr; } .table-wrap { max-height: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>STM_PSHH</h1>
+    <div class="status" id="status">Dang tai du lieu...</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="toolbar">
+        <input id="search" placeholder="Tim ID_PS, so hoa don, ma doi tuong, dien giai...">
+        <button id="reload">Tai lai</button>
+        <button class="primary" id="new">Them moi</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID_PS</th>
+              <th>Ngay CT</th>
+              <th>So HD</th>
+              <th>Ma DT</th>
+              <th>Dien giai</th>
+              <th>Tien</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <form id="form">
+        <label><span>ID_PS</span><input name="ID_PS" autocomplete="off"></label>
+        <div class="grid-2">
+          <label><span>Ngay CT</span><input name="NGAY_CT" type="datetime-local"></label>
+          <label><span>Ma loai CT</span><input name="MA_LOAI_CT"></label>
+        </div>
+        <div class="grid-2">
+          <label><span>So HD</span><input name="SO_HD"></label>
+          <label><span>So phieu</span><input name="SO_PHIEU"></label>
+        </div>
+        <div class="grid-2">
+          <label><span>Ma DT</span><input name="MA_DT"></label>
+          <label><span>Ma kho</span><input name="MA_KHO"></label>
+        </div>
+        <label><span>Ong ba</span><input name="ONG_BA"></label>
+        <label><span>Dia chi</span><input name="DIA_CHI"></label>
+        <label><span>MST</span><input name="MST"></label>
+        <label><span>Dien giai</span><textarea name="DIEN_GIAI"></textarea></label>
+        <div class="grid-2">
+          <label><span>Tien</span><input name="TIEN" type="number" step="any"></label>
+          <label><span>Tien NT</span><input name="TIEN_NT" type="number" step="any"></label>
+        </div>
+        <div class="grid-2">
+          <label><span>Tien VAT</span><input name="TIEN_VAT" type="number" step="any"></label>
+          <label><span>Ghi chu</span><input name="GHI_CHU"></label>
+        </div>
+        <div class="checks">
+          <label><input name="XAC_NHAN" type="checkbox"> Xac nhan</label>
+          <label><input name="CHOT" type="checkbox"> Chot</label>
+        </div>
+        <div class="actions">
+          <button type="button" class="danger" id="delete">Xoa</button>
+          <button type="reset">Lam moi</button>
+          <button type="submit" class="primary">Luu</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const api = '/api/stm-pshh';
+    const rowsEl = document.getElementById('rows');
+    const form = document.getElementById('form');
+    const statusEl = document.getElementById('status');
+    const fields = ['ID_PS','NGAY_CT','MA_LOAI_CT','SO_HD','SO_PHIEU','MA_DT','MA_KHO','ONG_BA','DIA_CHI','MST','DIEN_GIAI','TIEN','TIEN_NT','TIEN_VAT','GHI_CHU','XAC_NHAN','CHOT'];
+    let editingId = null;
+
+    function setStatus(text) { statusEl.textContent = text; }
+    function money(value) { return value == null ? '' : Number(value).toLocaleString('vi-VN'); }
+    function dateText(value) { return value ? new Date(value).toLocaleDateString('vi-VN') : ''; }
+    function toDateInput(value) {
+      if (!value) return '';
+      const d = new Date(value);
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 16);
+    }
+
+    async function loadRows() {
+      setStatus('Dang tai du lieu...');
+      const q = document.getElementById('search').value.trim();
+      const res = await fetch(`${api}?take=100&q=${encodeURIComponent(q)}`);
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      rowsEl.innerHTML = data.map(row => `
+        <tr data-id="${row.ID_PS ?? ''}">
+          <td>${row.ID_PS ?? ''}</td>
+          <td>${dateText(row.NGAY_CT)}</td>
+          <td>${row.SO_HD ?? ''}</td>
+          <td>${row.MA_DT ?? ''}</td>
+          <td>${row.DIEN_GIAI ?? ''}</td>
+          <td>${money(row.TIEN)}</td>
+        </tr>`).join('');
+      setStatus(`Dang hien thi ${data.length} dong`);
+    }
+
+    async function loadOne(id) {
+      const res = await fetch(`${api}/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(await res.text());
+      const row = await res.json();
+      editingId = row.ID_PS;
+      for (const name of fields) {
+        const el = form.elements[name];
+        if (!el) continue;
+        if (el.type === 'checkbox') el.checked = Boolean(row[name]);
+        else if (el.type === 'datetime-local') el.value = toDateInput(row[name]);
+        else el.value = row[name] ?? '';
+      }
+      form.elements.ID_PS.readOnly = true;
+      setStatus(`Dang sua ${editingId}`);
+    }
+
+    function readPayload() {
+      const payload = {};
+      for (const name of fields) {
+        const el = form.elements[name];
+        if (!el) continue;
+        if (el.type === 'checkbox') payload[name] = el.checked;
+        else payload[name] = el.value === '' ? null : el.value;
+      }
+      return payload;
+    }
+
+    document.getElementById('reload').addEventListener('click', loadRows);
+    document.getElementById('search').addEventListener('keydown', event => {
+      if (event.key === 'Enter') loadRows();
+    });
+    document.getElementById('new').addEventListener('click', () => {
+      editingId = null;
+      form.reset();
+      form.elements.ID_PS.readOnly = false;
+      setStatus('Them dong moi');
+    });
+    rowsEl.addEventListener('click', event => {
+      const tr = event.target.closest('tr');
+      if (tr?.dataset.id) loadOne(tr.dataset.id).catch(err => setStatus(err.message));
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const payload = readPayload();
+      const url = editingId ? `${api}/${encodeURIComponent(editingId)}` : api;
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        setStatus(await res.text());
+        return;
+      }
+      setStatus('Da luu');
+      await loadRows();
+    });
+    document.getElementById('delete').addEventListener('click', async () => {
+      if (!editingId || !confirm(`Xoa dong ${editingId}?`)) return;
+      const res = await fetch(`${api}/${encodeURIComponent(editingId)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        setStatus(await res.text());
+        return;
+      }
+      editingId = null;
+      form.reset();
+      form.elements.ID_PS.readOnly = false;
+      setStatus('Da xoa');
+      await loadRows();
+    });
+
+    loadRows().catch(err => setStatus(err.message));
+  </script>
+</body>
+</html>

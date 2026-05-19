@@ -1,0 +1,19 @@
+## Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+
+## Build output
+bin/
+obj/
+
+## Local logs
+*.log
+
+## Local development settings with secrets
+appsettings.Development.json
+*.Development.json
+
+## OS files
+.DS_Store
+Thumbs.db
