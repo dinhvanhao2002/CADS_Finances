@@ -1,0 +1,232 @@
+@model CADSFINANCE.Models.SwaggerLoginViewModel
+
+@{
+    Layout = null;
+}
+
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CADSFINANCE Swagger Login</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #2f384d;
+            background: #ffffff;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: start center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        main {
+            width: min(100%, 500px);
+            padding-top: 0;
+        }
+
+        h1 {
+            margin: 0 0 20px;
+            text-align: center;
+            color: #59627a;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 19px;
+            color: #5d657c;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .field {
+            position: relative;
+        }
+
+        .field svg {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            color: #2f384d;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .field .toggle-password {
+            left: auto;
+            right: 18px;
+            width: 22px;
+            height: 22px;
+            color: #64708b;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 46px;
+            border: 1px solid #c8d1e3;
+            border-radius: 6px;
+            padding: 11px 48px;
+            color: #2f384d;
+            font: inherit;
+            font-size: 16px;
+            font-weight: 400;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: #a3acc0;
+            opacity: 1;
+        }
+
+        input:focus {
+            border-color: #3973ff;
+            box-shadow: 0 0 0 2px rgba(57, 115, 255, 0.12);
+        }
+
+        button {
+            width: 100%;
+            min-height: 46px;
+            border: 0;
+            border-radius: 6px;
+            background: #3973ff;
+            color: white;
+            font: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 4px 0 65px;
+            color: #5d657c;
+            font-size: 16px;
+        }
+
+        .remember {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            color: inherit;
+            font-size: inherit;
+            font-weight: 500;
+            text-transform: none;
+            cursor: pointer;
+        }
+
+        .remember input {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            accent-color: #3973ff;
+        }
+
+        a {
+            color: #3973ff;
+            font-weight: 500;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .error {
+            margin-bottom: 16px;
+            border: 1px solid #f0b7b7;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #9f1d1d;
+            background: #fff3f3;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Tài khoản của bạn</h1>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="error">@Model.Error</div>
+        }
+
+        <form method="post" action="/swagger-login" autocomplete="on">
+            <input type="hidden" asp-for="ReturnUrl">
+
+            <label>
+                Mã số thuế
+                <span class="field">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75v12.5A2.75 2.75 0 0 1 18.25 21H5.75A2.75 2.75 0 0 1 3 18.25V5.75Zm2.75-1.25c-.69 0-1.25.56-1.25 1.25v12.5c0 .69.56 1.25 1.25 1.25h12.5c.69 0 1.25-.56 1.25-1.25V5.75c0-.69-.56-1.25-1.25-1.25H5.75ZM7 8.25c0-.41.34-.75.75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5A.75.75 0 0 1 7 8.25Zm0 3.75c0-.41.34-.75.75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5A.75.75 0 0 1 7 12Zm0 3.75c0-.41.34-.75.75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 7 15.75ZM13.25 7.5h3A.75.75 0 0 1 17 8.25v3.5a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3.5a.75.75 0 0 1 .75-.75Z" />
+                    </svg>
+                    <input asp-for="Taxcode" type="text" placeholder="Mã số thuế" required autofocus>
+                </span>
+            </label>
+
+            <label>
+                Email hoặc số điện thoại
+                <span class="field">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5Z" />
+                    </svg>
+                    <input asp-for="Gmail" type="email" required>
+                </span>
+            </label>
+
+            <label>
+                Mật khẩu
+                <span class="field">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M7.5 14.5A5.5 5.5 0 1 1 13 9a5.54 5.54 0 0 1-.44 2.16l7.14 7.14a1 1 0 0 1 0 1.4l-1 1a1 1 0 0 1-1.4 0l-1.55-1.55-1.05 1.05a1 1 0 0 1-1.4 0l-1.05-1.05-1.05 1.05a1 1 0 0 1-1.7-.7v-1.64l-1.66-1.66A5.54 5.54 0 0 1 7.5 14.5Zm-1.5-7A1.5 1.5 0 1 0 7.5 6 1.5 1.5 0 0 0 6 7.5Z" />
+                    </svg>
+                    <input asp-for="Password" id="password-input" type="password" required>
+                    <svg class="toggle-password" id="toggle-password" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M12 5c5.25 0 8.7 4.3 9.83 6a1.75 1.75 0 0 1 0 2C20.7 14.7 17.25 19 12 19s-8.7-4.3-9.83-6a1.75 1.75 0 0 1 0-2C3.3 9.3 6.75 5 12 5Zm0 2C7.68 7 4.86 10.54 3.9 12c.96 1.46 3.78 5 8.1 5s7.14-3.54 8.1-5C19.14 10.54 16.32 7 12 7Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
+                    </svg>
+                </span>
+            </label>
+
+            <input asp-for="Uuid" type="hidden">
+
+            <div class="options">
+                <label class="remember">
+                    <input type="checkbox" checked>
+                    <span>Ghi nhớ mật khẩu</span>
+                </label>
+                <a href="#" aria-label="Quên mật khẩu">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit">Dang nhap</button>
+        </form>
+    </main>
+    <script>
+        const togglePassword = document.getElementById("toggle-password");
+        const passwordInput = document.getElementById("password-input");
+
+        togglePassword.addEventListener("click", () => {
+            passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+        });
+    </script>
+</body>
+</html>

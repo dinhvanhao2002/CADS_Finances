@@ -1,7 +1,9 @@
 using System.Data;
 using System.Text.Json;
+using CADSFINANCE.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace CADSFINANCE.Controllers;
 
@@ -10,12 +12,11 @@ namespace CADSFINANCE.Controllers;
 public sealed class StmPshhController : ControllerBase
 {
     private const string TableName = "dbo.STM_PSHH";
-    private readonly string _connectionString;
+    private readonly CadsFinanceDbContext _dbContext;
 
-    public StmPshhController(IConfiguration configuration)
+    public StmPshhController(CadsFinanceDbContext dbContext)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
+        _dbContext = dbContext;
     }
 
     [HttpGet]
@@ -25,7 +26,7 @@ public sealed class StmPshhController : ControllerBase
     {
         take = Math.Clamp(take, 1, 500);
 
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -51,7 +52,7 @@ public sealed class StmPshhController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Dictionary<string, object?>>> GetById(string id)
     {
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -76,7 +77,7 @@ public sealed class StmPshhController : ControllerBase
         var columnSql = string.Join(", ", values.Keys.Select(QuoteColumn));
         var parameterSql = string.Join(", ", values.Keys.Select(c => $"@{SafeParameterName(c)}"));
 
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -98,7 +99,7 @@ public sealed class StmPshhController : ControllerBase
             return BadRequest("No valid STM_PSHH columns were provided.");
         }
 
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -117,7 +118,7 @@ public sealed class StmPshhController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -130,7 +131,7 @@ public sealed class StmPshhController : ControllerBase
 
     private async Task<IReadOnlyDictionary<string, string>> GetColumnMapAsync()
     {
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = CreateConnection();
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -222,4 +223,9 @@ public sealed class StmPshhController : ControllerBase
 
     private static string SafeParameterName(string columnName) =>
         columnName.Replace("/", "_").Replace(" ", "_").Replace("-", "_");
+
+    private SqlConnection CreateConnection()
+    {
+        return new SqlConnection(_dbContext.Database.GetDbConnection().ConnectionString);
+    }
 }

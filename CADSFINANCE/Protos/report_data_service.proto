@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option csharp_namespace = "CADSFINANCE.Grpc.ReportData";
+
+package cadsfinance.reportdata;
+
+service ReportDataService {
+  rpc GetReportDataTable (ReportDataTableRequest) returns (ReportDataTableReply);
+}
+
+message ReportDataTableRequest {
+  string company_code = 1;
+  string report_code = 2;
+  int32 skip = 3;
+  int32 take = 4;
+  string q = 5;
+  string from_date = 6;
+  string to_date = 7;
+  string ma_dt = 8;
+  string ma_loai_ct = 9;
+}
+
+message ReportDataTableReply {
+  string data_set_name = 1;
+  string table_name = 2;
+  int32 total = 3;
+  repeated ReportColumn columns = 4;
+  repeated ReportRow rows = 5;
+}
+
+message ReportColumn {
+  string name = 1;
+  string data_type = 2;
+}
+
+message ReportRow {
+  map<string, string> values = 1;
+}

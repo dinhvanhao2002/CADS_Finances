@@ -1,57 +1,35 @@
+using CADSFINANCE.Infrastructure.Persistence;
+using CADSFINANCE.Models;
 using CADSFINANCE.Services.Application.DonViTinhService.DTOs;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 namespace CADSFINANCE.Services.Application.DonViTinhService;
 
 public sealed class DonViTinhService : IDonViTinhService
 {
-    private readonly string _connectionString;
+    private readonly CadsFinanceDbContext _dbContext;
 
-    public DonViTinhService(IConfiguration configuration)
+    public DonViTinhService(CadsFinanceDbContext dbContext)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
+        _dbContext = dbContext;
     }
 
     public async Task<IReadOnlyList<DonViTinhDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT MA_DVT, TEN_DVT, USER_ID, QUY_CACH, isActive
-            FROM dbo.LST_DonViTinh
-            ORDER BY MA_DVT
-            """;
-
-        var items = new List<DonViTinhDto>();
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using var command = new SqlCommand(sql, connection);
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            items.Add(Map(reader));
-        }
-
-        return items;
+        return await _dbContext.DonViTinhs
+            .AsNoTracking()
+            .OrderBy(item => item.MaDvt)
+            .Select(item => ToDto(item))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<DonViTinhDto?> GetByIdAsync(string maDvt, CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT MA_DVT, TEN_DVT, USER_ID, QUY_CACH, isActive
-            FROM dbo.LST_DonViTinh
-            WHERE MA_DVT = @MA_DVT
-            """;
-
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@MA_DVT", maDvt);
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken) ? Map(reader) : null;
+        return await _dbContext.DonViTinhs
+            .AsNoTracking()
+            .Where(item => item.MaDvt == maDvt)
+            .Select(item => ToDto(item))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<(bool Success, string? Error)> CreateAsync(DonViTinhDto dto, CancellationToken cancellationToken = default)
@@ -62,22 +40,22 @@ public sealed class DonViTinhService : IDonViTinhService
             return (false, validationError);
         }
 
-        if (await ExistsAsync(dto.MaDvt.Trim(), cancellationToken))
+        var maDvt = dto.MaDvt.Trim();
+        if (await _dbContext.DonViTinhs.AnyAsync(item => item.MaDvt == maDvt, cancellationToken))
         {
             return (false, $"MaDvt '{dto.MaDvt}' already exists.");
         }
 
-        const string sql = """
-            INSERT INTO dbo.LST_DonViTinh (MA_DVT, TEN_DVT, USER_ID, QUY_CACH, isActive)
-            VALUES (@MA_DVT, @TEN_DVT, @USER_ID, @QUY_CACH, @isActive)
-            """;
+        _dbContext.DonViTinhs.Add(new DonViTinh
+        {
+            MaDvt = maDvt,
+            TenDvt = dto.TenDvt,
+            UserId = dto.UserId,
+            QuyCach = dto.QuyCach,
+            IsActive = dto.IsActive
+        });
 
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using var command = new SqlCommand(sql, connection);
-        AddParameters(command, dto);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return (true, null);
     }
@@ -92,51 +70,36 @@ public sealed class DonViTinhService : IDonViTinhService
             return (false, validationError);
         }
 
-        const string sql = """
-            UPDATE dbo.LST_DonViTinh
-            SET TEN_DVT = @TEN_DVT,
-                USER_ID = @USER_ID,
-                QUY_CACH = @QUY_CACH,
-                isActive = @isActive
-            WHERE MA_DVT = @MA_DVT
-            """;
+        var entity = await _dbContext.DonViTinhs
+            .FirstOrDefaultAsync(item => item.MaDvt == maDvt, cancellationToken);
 
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
+        if (entity is null)
+        {
+            return (false, $"MaDvt '{maDvt}' was not found.");
+        }
 
-        await using var command = new SqlCommand(sql, connection);
-        AddParameters(command, dto);
+        entity.TenDvt = dto.TenDvt;
+        entity.UserId = dto.UserId;
+        entity.QuyCach = dto.QuyCach;
+        entity.IsActive = dto.IsActive;
 
-        var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
-        return affectedRows > 0 ? (true, null) : (false, $"MaDvt '{maDvt}' was not found.");
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return (true, null);
     }
 
     public async Task<bool> DeleteAsync(string maDvt, CancellationToken cancellationToken = default)
     {
-        const string sql = "DELETE FROM dbo.LST_DonViTinh WHERE MA_DVT = @MA_DVT";
+        var entity = await _dbContext.DonViTinhs
+            .FirstOrDefaultAsync(item => item.MaDvt == maDvt, cancellationToken);
 
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
 
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@MA_DVT", maDvt);
-
-        var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
-        return affectedRows > 0;
-    }
-
-    private async Task<bool> ExistsAsync(string maDvt, CancellationToken cancellationToken = default)
-    {
-        const string sql = "SELECT COUNT(1) FROM dbo.LST_DonViTinh WHERE MA_DVT = @MA_DVT";
-
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@MA_DVT", maDvt);
-
-        var count = (int)await command.ExecuteScalarAsync(cancellationToken);
-        return count > 0;
+        _dbContext.DonViTinhs.Remove(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private static string? Validate(DonViTinhDto dto)
@@ -159,24 +122,15 @@ public sealed class DonViTinhService : IDonViTinhService
         return null;
     }
 
-    private static DonViTinhDto Map(SqlDataReader reader)
+    private static DonViTinhDto ToDto(DonViTinh entity)
     {
         return new DonViTinhDto
         {
-            MaDvt = reader.GetString(reader.GetOrdinal("MA_DVT")),
-            TenDvt = reader.IsDBNull(reader.GetOrdinal("TEN_DVT")) ? null : reader.GetString(reader.GetOrdinal("TEN_DVT")),
-            UserId = reader.IsDBNull(reader.GetOrdinal("USER_ID")) ? null : reader.GetInt32(reader.GetOrdinal("USER_ID")),
-            QuyCach = reader.IsDBNull(reader.GetOrdinal("QUY_CACH")) ? null : reader.GetDouble(reader.GetOrdinal("QUY_CACH")),
-            IsActive = reader.IsDBNull(reader.GetOrdinal("isActive")) ? null : reader.GetBoolean(reader.GetOrdinal("isActive"))
+            MaDvt = entity.MaDvt,
+            TenDvt = entity.TenDvt,
+            UserId = entity.UserId,
+            QuyCach = entity.QuyCach,
+            IsActive = entity.IsActive
         };
-    }
-
-    private static void AddParameters(SqlCommand command, DonViTinhDto dto)
-    {
-        command.Parameters.AddWithValue("@MA_DVT", dto.MaDvt.Trim());
-        command.Parameters.AddWithValue("@TEN_DVT", (object?)dto.TenDvt ?? DBNull.Value);
-        command.Parameters.AddWithValue("@USER_ID", (object?)dto.UserId ?? DBNull.Value);
-        command.Parameters.AddWithValue("@QUY_CACH", (object?)dto.QuyCach ?? DBNull.Value);
-        command.Parameters.AddWithValue("@isActive", (object?)dto.IsActive ?? DBNull.Value);
     }
 }

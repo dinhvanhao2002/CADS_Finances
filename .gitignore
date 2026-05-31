@@ -10,6 +10,9 @@ obj/
 ## Local logs
 *.log
 
+## Local generated report exports
+CADSFINANCE/wwwroot/companies/
+
 ## Local development settings with secrets
 appsettings.Development.json
 *.Development.json
