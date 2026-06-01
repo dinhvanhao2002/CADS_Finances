@@ -1,5 +1,52 @@
 # CadsWebFinance
 
+## WebSocket base
+
+Project exposes a native ASP.NET WebSocket endpoint:
+
+- WebSocket URL: `ws://localhost:<port>/ws/notifications?clientId=<client-id>`
+- List connected clients: `GET /api/websocket-notifications/clients`
+- Broadcast message: `POST /api/websocket-notifications/broadcast`
+- Send to one client: `POST /api/websocket-notifications/clients/{clientId}`
+
+Client message example:
+
+```json
+{
+  "type": "ping",
+  "traceId": "test-1"
+}
+```
+
+Server notification body example:
+
+```json
+{
+  "type": "report.completed",
+  "data": {
+    "jobId": "123",
+    "status": "completed"
+  }
+}
+```
+
+Frontend JavaScript test:
+
+```js
+const ws = new WebSocket("ws://localhost:5000/ws/notifications?clientId=web-01");
+
+ws.onmessage = (event) => console.log(JSON.parse(event.data));
+ws.onopen = () => ws.send(JSON.stringify({ type: "ping", traceId: "test-1" }));
+```
+
+The socket is ready when:
+
+- Browser fires `ws.onopen`.
+- Server sends the first message with `type: "connected"`.
+- A `ping` message returns a `pong` message.
+
+Complete frontend example: `docs/websocket-fe-example.html`.
+
 
 
 ## Getting started

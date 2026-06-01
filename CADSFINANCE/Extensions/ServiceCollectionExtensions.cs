@@ -2,6 +2,7 @@ using CADSFINANCE.Infrastructure.Persistence;
 using CADSFINANCE.Services.Application.DonViTinhService;
 using CADSFINANCE.Services.Application.ReportInfrastructure;
 using CADSFINANCE.Services.Application.StmPshhReportService;
+using CADSFINANCE.Services.Application.WebSockets;
 using Microsoft.EntityFrameworkCore;
 
 namespace CADSFINANCE.Extensions;
@@ -23,6 +24,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IDonViTinhService, DonViTinhService>();
         services.AddScoped<IStmPshhReportService, StmPshhReportService>();
+        services.AddSingleton<IWebSocketConnectionManager, WebSocketConnectionManager>();
+        services.AddSingleton<IWebSocketMessagePublisher, WebSocketMessagePublisher>();
 
         return services;
     }

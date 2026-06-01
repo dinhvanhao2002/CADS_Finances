@@ -88,6 +88,10 @@ app.UseCors("CadsNextjs");
 app.UseDevExpressControls();
 app.UseStaticFiles();
 app.UseAuthentication();
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(30)
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() ||
@@ -117,6 +121,7 @@ app.UseAuthorization();
 
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
+app.MapCadsWebSockets();
 app.MapControllers();
 app.MapHealthChecks("/healthz");
 

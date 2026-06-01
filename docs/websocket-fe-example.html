@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CADS Finance WebSocket Example</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    main {
+      max-width: 920px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    section {
+      background: #ffffff;
+      border: 1px solid #d9e0ec;
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 600;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #b7c2d5;
+      border-radius: 6px;
+      padding: 10px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 8px 0 0;
+      background: #1264a3;
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #526070;
+    }
+
+    button.danger {
+      background: #b42318;
+    }
+
+    #status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2f7;
+      font-weight: 700;
+    }
+
+    #status.connected {
+      background: #dcfae6;
+      color: #067647;
+    }
+
+    #status.disconnected {
+      background: #fee4e2;
+      color: #b42318;
+    }
+
+    pre {
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+      background: #111827;
+      color: #d1d5db;
+      border-radius: 8px;
+      padding: 14px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>CADS Finance WebSocket Example</h1>
+
+    <section>
+      <div>Trạng thái: <span id="status" class="disconnected">DISCONNECTED</span></div>
+
+      <label for="serverUrl">WebSocket URL</label>
+      <input id="serverUrl" value="ws://localhost:5000/ws/notifications?clientId=fe-demo-01">
+
+      <button id="connectBtn">Connect</button>
+      <button id="disconnectBtn" class="danger">Disconnect</button>
+      <button id="pingBtn" class="secondary">Send Ping</button>
+    </section>
+
+    <section>
+      <label for="messageBody">Message gửi lên server</label>
+      <textarea id="messageBody">{
+  "type": "ping",
+  "traceId": "fe-test-1",
+  "data": {
+    "from": "frontend"
+  }
+}</textarea>
+
+      <button id="sendBtn">Send Message</button>
+    </section>
+
+    <section>
+      <h2>Log</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+
+  <script>
+    let socket = null;
+
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const serverUrlEl = document.getElementById("serverUrl");
+    const messageBodyEl = document.getElementById("messageBody");
+
+    function setStatus(text, className) {
+      statusEl.textContent = text;
+      statusEl.className = className;
+    }
+
+    function writeLog(type, data) {
+      const time = new Date().toLocaleTimeString();
+      const value = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      logEl.textContent += `[${time}] ${type}\n${value}\n\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function connect() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        writeLog("INFO", "Socket is already connected.");
+        return;
+      }
+
+      socket = new WebSocket(serverUrlEl.value);
+      setStatus("CONNECTING", "");
+      writeLog("CONNECTING", serverUrlEl.value);
+
+      socket.onopen = function () {
+        setStatus("CONNECTED", "connected");
+        writeLog("OPEN", "Connected successfully.");
+      };
+
+      socket.onmessage = function (event) {
+        const message = JSON.parse(event.data);
+        writeLog("MESSAGE", message);
+
+        if (message.type === "connected") {
+          writeLog("READY", "Server accepted this WebSocket connection.");
+        }
+      };
+
+      socket.onerror = function (event) {
+        writeLog("ERROR", "WebSocket error. Check backend URL, port, and CORS/proxy settings.");
+      };
+
+      socket.onclose = function (event) {
+        setStatus("DISCONNECTED", "disconnected");
+        writeLog("CLOSE", {
+          code: event.code,
+          reason: event.reason || "No reason returned"
+        });
+      };
+    }
+
+    function disconnect() {
+      if (!socket) {
+        return;
+      }
+
+      socket.close(1000, "Closed by frontend");
+      socket = null;
+    }
+
+    function sendMessage() {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        writeLog("WARN", "Socket is not connected.");
+        return;
+      }
+
+      const message = JSON.parse(messageBodyEl.value);
+      socket.send(JSON.stringify(message));
+      writeLog("SENT", message);
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", connect);
+    document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    document.getElementById("pingBtn").addEventListener("click", function () {
+      messageBodyEl.value = JSON.stringify({
+        type: "ping",
+        traceId: crypto.randomUUID(),
+        data: {
+          from: "frontend"
+        }
+      }, null, 2);
+      sendMessage();
+    });
+  </script>
+</body>
+</html>
